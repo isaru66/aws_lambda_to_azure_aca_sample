@@ -1,0 +1,6 @@
+FROM mcr.microsoft.com/openjdk/jdk:21-ubuntu
+
+# Continue with your application deployment
+RUN mkdir /opt/app
+COPY target/example-java-1.0-SNAPSHOT-jar-with-dependencies.jar /opt/app/app.jar
+CMD ["java", "-cp", "/opt/app/app.jar", "isaru66.AzureBlobHandler"]
