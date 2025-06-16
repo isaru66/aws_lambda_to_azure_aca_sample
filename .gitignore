@@ -51,3 +51,6 @@ __blobstorage__/
 
 # Ignore Visual Studio Code workspace files
 .vscode/
+
+# Ignore Java target directory
+target/
