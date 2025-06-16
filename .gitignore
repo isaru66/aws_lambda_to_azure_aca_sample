@@ -54,3 +54,7 @@ __blobstorage__/
 
 # Ignore Java target directory
 target/
+
+# Ignore.env files
+.env 
+cloud.env
