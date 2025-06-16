@@ -45,3 +45,9 @@ testing/
 __azurite_db_blob__.json
 __azurite_db_blob_extent__.json
 __blobstorage__/
+
+# Ignore IntelliJ IDEA project files
+.idea/
+
+# Ignore Visual Studio Code workspace files
+.vscode/
