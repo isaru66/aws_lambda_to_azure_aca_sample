@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: azure-aca-blob-springboot
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+azure:
+  storage:
+    blob:
+      endpoint: ${AZURE_BLOB_ENDPOINT}
+      source-container: ${SOURCE_CONTAINER:images}
+      destination-container: ${DEST_CONTAINER:resized-images}
+
+server:
+  port: ${PORT:8080}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+azure:
+  storage:
+    blob:
+      endpoint: ${AZURE_BLOB_ENDPOINT:http://127.0.0.1:10000/devstoreaccount1}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+logging:
+  level:
+    root: INFO
+    isaru66: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+logging:
+  level:
+    root: WARN
+    isaru66: INFO
