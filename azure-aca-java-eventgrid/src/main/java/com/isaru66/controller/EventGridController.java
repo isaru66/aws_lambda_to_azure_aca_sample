@@ -24,7 +24,7 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobHttpHeaders;
-
+import com.isaru66.model.UploadSuccessResponse;
 import com.isaru66.model.ValidationResponse;
 
 @RestController
@@ -69,9 +69,16 @@ public class EventGridController {
                         url, contentType, contentLength);
 
                     // Extract source container and blob name from URL
+                    // Example URL: https://stisaru66acatrigger.blob.core.windows.net/blobinput/input/cat001.jpg
+                    // srcBucket: blobinput, srcKey: input/cat001.jpg
                     String[] urlParts = url.split("/");
-                    String srcKey = urlParts[urlParts.length - 1];
-                    String srcBucket = urlParts[urlParts.length - 2];
+                    String srcBucket = urlParts[3]; // after 'https://<account>.blob.core.windows.net/'
+                    // srcKey is everything after the container name
+                    int containerIndex = url.indexOf(srcBucket) + srcBucket.length() + 1;
+                    String srcKey = url.substring(containerIndex);
+
+                    // Print srcKey and srcBucket for debugging
+                    logger.info("Source Key: {}, Source Bucket: {}", srcKey, srcBucket);
                     
                     // Process image only if it's jpg or png
                     Matcher matcher = Pattern.compile(REGEX).matcher(srcKey);
@@ -89,7 +96,8 @@ public class EventGridController {
                     if (dstBucket == null || dstBucket.isEmpty()) {
                         throw new IllegalArgumentException("DEST_BUCKET environment variable is not set");
                     }
-                    String dstKey = "resized-" + srcKey;
+                    String dstKey = srcKey.replaceFirst("^input/", "resize/");
+                    logger.info("Destination Key: {}, Destination Bucket: {}", dstKey, dstBucket);
 
                     // Download the image from Azure Blob Storage
                     BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
@@ -116,6 +124,8 @@ public class EventGridController {
 
                     logger.info("Successfully resized {}/{} and uploaded to {}/{}",
                         srcBucket, srcKey, dstBucket, dstKey);
+                    
+                    return ResponseEntity.ok(new UploadSuccessResponse("Image resized and uploaded successfully",dstBlobClient.getBlobUrl() ));
 
                 } catch (IOException e) {
                     logger.error("Error processing blob: {}", e.getMessage());

@@ -20,7 +20,7 @@ Eample of Microsoft.EventGrid.SubscriptionValidationEvent
 
 Example of Microsoft.Storage.BlobCreated
 ```json
-{
+[{
   "topic": "/subscriptions/79e1d757-ecdb-4dc3-b0b4-035bac76053d/resourceGroups/rg-isaru66-aca/providers/Microsoft.Storage/storageAccounts/stisaru66acatrigger",
   "subject": "/blobServices/default/containers/blobinput/blobs/input/cat001.jpg",
   "eventType": "Microsoft.Storage.BlobCreated",
@@ -43,5 +43,5 @@ Example of Microsoft.Storage.BlobCreated
   "dataVersion": "",
   "metadataVersion": "1",
   "eventTime": "2025-06-16T06:10:20.429935Z"
-}
+}]
 ```
