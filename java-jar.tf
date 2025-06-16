@@ -4,13 +4,12 @@ resource "null_resource" "build" {
   }
 
   provisioner "local-exec" {
-    
     working_dir = local.source_dir
       command = "mvn package -f pom.xml"
   }
 }
 
 locals {
-    lambda_payload_filename = "${local.source_dir}/target/example-java-1.0-SNAPSHOT.jar" //example-java-1.0-SNAPSHOT.jar
+    lambda_payload_filename = "${local.source_dir}/target/${var.lambda_jar_filename}" //aws-lambda-s3-handler-java-1.0-SNAPSHOT.jar
     source_dir = "./aws-lambda-java"
 }
