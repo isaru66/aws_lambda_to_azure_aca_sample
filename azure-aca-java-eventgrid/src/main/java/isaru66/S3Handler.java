@@ -1,10 +1,11 @@
 package isaru66;
 
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
+import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.models.BlobHttpHeaders;
 
 import java.io.InputStream;
 import java.util.HashMap;
@@ -61,20 +62,27 @@ public class S3Handler implements RequestHandler<S3Event, String> {
         logger.log("Skipping non-image " + srcKey);
         return "";
       }
-      // Download the image from S3 into a stream
-      S3Client s3Client = S3Client.builder().build();
-      InputStream s3Object = getObject(s3Client, srcBucket, srcKey);
+      // Download the image from Azure Blob Storage into a stream
+      BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
+          .endpoint(System.getenv("AZURE_BLOB_ENDPOINT"))
+          .credential(new DefaultAzureCredentialBuilder().build())
+          .buildClient();
+      BlobContainerClient srcContainerClient = blobServiceClient.getBlobContainerClient(srcBucket);
+      BlobClient srcBlobClient = srcContainerClient.getBlobClient(srcKey);
+      InputStream blobInputStream = getObject(srcBlobClient);
 
       // Read the source image and resize it
-      BufferedImage srcImage = ImageIO.read(s3Object);
+      BufferedImage srcImage = ImageIO.read(blobInputStream);
       BufferedImage newImage = resizeImage(srcImage);
 
       // Re-encode image to target format
       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
       ImageIO.write(newImage, imageType, outputStream);
 
-      // Upload new image to S3
-      putObject(s3Client, outputStream, dstBucket, dstKey, imageType, logger);
+      // Upload new image to Azure Blob Storage
+      BlobContainerClient dstContainerClient = blobServiceClient.getBlobContainerClient(dstBucket);
+      BlobClient dstBlobClient = dstContainerClient.getBlobClient(dstKey);
+      putObject(dstBlobClient, outputStream, imageType, logger);
 
       logger.log("Successfully resized " + srcBucket + "/"
           + srcKey + " and uploaded to " + dstBucket + "/" + dstKey);
@@ -84,37 +92,26 @@ public class S3Handler implements RequestHandler<S3Event, String> {
     }
   }
 
-  private InputStream getObject(S3Client s3Client, String bucket, String key) {
-    GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-        .bucket(bucket)
-        .key(key)
-        .build();
-    return s3Client.getObject(getObjectRequest);
+  private InputStream getObject(BlobClient blobClient) throws IOException {
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    blobClient.downloadStream(outputStream);
+    return new java.io.ByteArrayInputStream(outputStream.toByteArray());
   }
 
-  private void putObject(S3Client s3Client, ByteArrayOutputStream outputStream,
-      String bucket, String key, String imageType, LambdaLogger logger) {
-    Map<String, String> metadata = new HashMap<>();
-    metadata.put("Content-Length", Integer.toString(outputStream.size()));
+  private void putObject(BlobClient blobClient, ByteArrayOutputStream outputStream,
+      String imageType, LambdaLogger logger) {
+    BlobHttpHeaders headers = new BlobHttpHeaders();
     if (JPG_TYPE.equals(imageType)) {
-      metadata.put("Content-Type", JPG_MIME);
+      headers.setContentType(JPG_MIME);
     } else if (PNG_TYPE.equals(imageType)) {
-      metadata.put("Content-Type", PNG_MIME);
+      headers.setContentType(PNG_MIME);
     }
-
-    PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-        .bucket(bucket)
-        .key(key)
-        .metadata(metadata)
-        .build();
-
-    // Uploading to S3 destination bucket
-    logger.log("Writing to: " + bucket + "/" + key);
+    logger.log("Writing to: " + blobClient.getBlobUrl());
     try {
-      s3Client.putObject(putObjectRequest,
-          RequestBody.fromBytes(outputStream.toByteArray()));
-    } catch (AwsServiceException e) {
-      logger.log(e.awsErrorDetails().errorMessage());
+      blobClient.upload(new java.io.ByteArrayInputStream(outputStream.toByteArray()), outputStream.size(), true);
+      blobClient.setHttpHeaders(headers);
+    } catch (Exception e) {
+      logger.log(e.getMessage());
       System.exit(1);
     }
   }
