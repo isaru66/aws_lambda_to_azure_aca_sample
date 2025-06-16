@@ -1,24 +1,20 @@
-package isaru66;
+package com.isaru66;
 
-import com.azure.storage.blob.*;
-import com.azure.storage.blob.models.*;
-import com.azure.core.util.Context;
-
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.models.BlobHttpHeaders;
+import com.azure.storage.blob.models.ListBlobsOptions;
 
 import javax.imageio.ImageIO;
-
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.InputStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AzureBlobHandler {
   private static final float MAX_DIMENSION = 100;
@@ -29,69 +25,6 @@ public class AzureBlobHandler {
   private final String PNG_MIME = "image/png";
 
   private static BlobServiceClient blobServiceClient = null;
-
-  /*
-  public String handleRequest(BlobTrigger blobTrigger, Context context) {
-    try {
-      String srcContainerName = blobTrigger.getContainerName();
-      String srcBlobName = blobTrigger.getBlobName();
-
-      String dstContainerName = System.getenv("DEST_CONTAINER");
-      if (dstContainerName == null || dstContainerName.isEmpty()) {
-        throw new IllegalArgumentException("DEST_CONTAINER environment variable is not set");
-      }
-      String dstBlobName = "resized-" + srcBlobName;
-
-      // Infer the image type
-      Matcher matcher = Pattern.compile(REGEX).matcher(srcBlobName);
-      if (!matcher.matches()) {
-        System.out.println("Unable to infer image type for blob " + srcBlobName);
-        return "";
-      }
-      String imageType = matcher.group(1);
-      if (!(JPG_TYPE.equals(imageType)) && !(PNG_TYPE.equals(imageType))) {
-        System.out.println("Skipping non-image " + srcBlobName);
-        return "";
-      }
-
-      // Download the image from Blob Storage
-      BlobContainerClient sourceContainer = blobServiceClient.getBlobContainerClient(srcContainerName);
-      BlobClient sourceBlob = sourceContainer.getBlobClient(srcBlobName);
-      InputStream blobContent = sourceBlob.openInputStream();
-
-      // Read the source image and resize it
-      BufferedImage srcImage = ImageIO.read(blobContent);
-      BufferedImage newImage = resizeImage(srcImage);
-
-      // Re-encode image to target format
-      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-      ImageIO.write(newImage, imageType, outputStream);
-
-      // Upload new image to Blob Storage
-      BlobContainerClient destContainer = blobServiceClient.getBlobContainerClient(dstContainerName);
-      destContainer.createIfNotExists();
-      BlobClient destBlob = destContainer.getBlobClient(dstBlobName);
-
-      Map<String, String> metadata = new HashMap<>();
-      metadata.put("Content-Length", Integer.toString(outputStream.size()));
-      if (JPG_TYPE.equals(imageType)) {
-        metadata.put("Content-Type", JPG_MIME);
-      } else if (PNG_TYPE.equals(imageType)) {
-        metadata.put("Content-Type", PNG_MIME);
-      }
-
-      byte[] outputBytes = outputStream.toByteArray();
-      destBlob.upload(new ByteArrayInputStream(outputBytes), outputBytes.length, true);
-      destBlob.setMetadata(metadata);
-
-      System.out.println("Successfully resized " + srcContainerName + "/"
-          + srcBlobName + " and uploaded to " + dstContainerName + "/" + dstBlobName);
-      return "Ok";
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-  */
 
   /**
    * Resizes (shrinks) an image into a small, thumbnail-sized image.
